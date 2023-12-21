@@ -1,0 +1,6 @@
+framework module gforceprofile {
+  umbrella header "gforceprofile.h"
+
+  export *
+  module * { export * }
+}
