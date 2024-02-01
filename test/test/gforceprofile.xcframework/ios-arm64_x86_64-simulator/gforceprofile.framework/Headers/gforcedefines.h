@@ -90,6 +90,7 @@ typedef NS_ENUM(NSInteger, DataNotifyFlags) {
     /// Device Log On
     DNF_LOG = 0x00000800,
 
+    DNF_EMG_GESTURE_EXT = 0x00001000,
     /// Data Notify All On
     DNF_ALL = 0xFFFFFFFF,
 };

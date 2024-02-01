@@ -53,11 +53,17 @@ const int MAX_CHANNEL_COUNT = 8;
         
     } timeout:TIMEOUT];
     
-    [self.profile setDataNotifSwitch: (DNF_EMG_RAW | DNF_QUATERNION | DNF_EULERANGLE) cb:^(GF_RET_CODE resp) {
+    //choose this code for EMG gesture Data
+    [self.profile setDataNotifSwitch: (DNF_EMG_GESTURE_EXT | DNF_QUATERNION | DNF_EULERANGLE) cb:^(GF_RET_CODE resp) {
         NSLog(@"got set data notify response %ld", (long)resp);
-        
+        [self.profile startDataNotification];
     } timeout:TIMEOUT];
-    
+    /*
+     //choose this code for EMG RAW Data
+     [self.profile setDataNotifSwitch: (DNF_EMG_RAW | DNF_QUATERNION | DNF_EULERANGLE) cb:^(GF_RET_CODE resp) {
+         NSLog(@"got set data notify response %ld", (long)resp);
+     } timeout:TIMEOUT];
+     
     [self.profile getEmgRawDataConfig:^(GF_RET_CODE resp, int sampRate, int channelMask, int dataLen, int resolution) {
         NSLog(@"got old emg config:%ld %d %d %d %d", (long)resp, sampRate, channelMask, dataLen, resolution);
         
@@ -82,7 +88,7 @@ const int MAX_CHANNEL_COUNT = 8;
         } timeout:TIMEOUT];
         
     } timeout:TIMEOUT];
-    
+    */
 
 }
 #pragma mark - gForceDelegate
@@ -90,13 +96,15 @@ const int MAX_CHANNEL_COUNT = 8;
     NSLog(@"got gforce error %@", err);
 }
 - (void)ongForceStateChange: (BLEState)newState{
-    if (newState == BLEStateConnected){
-        self.statusText.text = @"Connected";
-    }else if (newState == BLEStateRuning){
-        self.statusText.text = @"Running";
-    }else{
-        self.statusText.text = @"Not Connected";
-    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (newState == BLEStateConnected){
+            self.statusText.text = @"Connected";
+        }else if (newState == BLEStateRuning){
+            self.statusText.text = @"Running";
+        }else{
+            self.statusText.text = @"Not Connected";
+        }
+    });
 }
 
 - (void)ongForceScanResult:(NSArray *)bleDevices{
@@ -137,6 +145,21 @@ const int MAX_CHANNEL_COUNT = 8;
                     break;
                 }
             }
+        }else if (result[0] == NTF_EMG_GEST_DATA){
+            int filteredGesture, newGesture, probability;
+            short signalStrength;
+            if (rawData.length == 6){
+                filteredGesture = result[1];
+                newGesture = result[2];
+                probability = result[3];
+                memcpy(&signalStrength, result + 4, 2);
+            }else if (rawData.length == 2){
+                filteredGesture = result[1];
+                newGesture = filteredGesture;
+                probability = 100;
+                signalStrength = 1000;
+            }
+            NSLog(@"got emg gesture data:%d| %d| %d| %d", filteredGesture, newGesture, probability, signalStrength);
         }else if (result[0] == NTF_QUAT_FLOAT_DATA){
             //4 float w,x,y,z
             float w,x,y,z;
